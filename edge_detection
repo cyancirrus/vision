@@ -1,0 +1,92 @@
+import numpy as np
+import tensorflow as tf
+import os
+
+sess = tf.Session()
+
+def _decode_image(filename):
+    image_string = tf.read_file(filename)
+    image_decoded = tf.image.decode_png(image_string, channels=1)
+    image = tf.cast(image_decoded, tf.float32)
+    image_resized = tf.image.resize_images(image, [1500,1500])
+
+    return image_resized
+
+
+
+
+a = _decode_image("sailor_mercury.png")
+
+sess.run(a)
+print(a)
+
+
+#encode image#
+
+encoded = tf.cast(a, tf.uint8)
+encoded = tf.image.encode_png(encoded)
+
+
+#filters - contains edge and blur filters
+
+#sobel
+#kernel = tf.constant([[1, 0, -1], [2, 0, -2], [1, 0, -1]], tf.float32)
+kernel = tf.constant([[0, -1, 0], [-1, 4, -1], [0, -1, 0]], tf.float32)
+
+
+#gaussian_blur
+
+blur = tf.constant([[1,2,1],[2,4,2],[1,2,1]], tf.float32)
+
+blur = tf.multiply(blur,1/16)
+
+sobel_x = tf.constant([[1, 0, -1], [2, 0, -2], [1, 0, -1]], tf.float32)
+
+
+
+
+kernel_filter = tf.reshape(kernel, [3, 3, 1, 1])
+#sobel_y_filter = tf.transpose(sobel_x_filter, [1, 0, 2, 3])
+
+# Shape = height x width.
+image = tf.placeholder(tf.float32, shape=[None, None])
+
+# Shape = 1 x height x width x 1.
+image_resized = tf.expand_dims(a, 0)
+
+print(image_resized.shape)
+
+filtered_x = tf.nn.conv2d(image_resized, kernel_filter,
+                          strides=[1, 1, 1, 1], padding='SAME')
+
+print(filtered_x.shape)
+
+blur = tf.reshape(blur, [3, 3, 1, 1])
+
+blurred_x = tf.nn.conv2d(filtered_x, blur,
+
+                        strides = [1,1,1,1], padding = 'SAME')
+
+
+#filtered_y = tf.nn.conv2d(image_resized, sobel_y_filter,
+#                          strides=[1, 1, 1, 1], padding='SAME')
+
+
+
+
+
+
+test = tf.squeeze(blurred_x,[0])
+sess.run(blurred_x)
+
+
+filtered = tf.cast(test, tf.uint8)
+filtered = tf.image.encode_png(filtered)
+
+
+
+
+write = tf.write_file('./sailor_hermes.png', filtered)
+
+with tf.Session() as sess:
+    sess.run(write)
